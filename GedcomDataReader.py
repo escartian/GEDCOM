@@ -3,7 +3,7 @@ from datetime import datetime
 from prettytable import PrettyTable
 
 #global variables
-logger = True
+logger = False
 verbouseLogger = False
 valid_tags = {'INDI', 'NAME', 'SEX', 'BIRT', 'DEAT', 'FAMC', 'FAMS', 'FAM', 'MARR', 'HUSB', 'WIFE', 'CHIL', 'DIV', 'DATE', 'HEAD', 'TRLR', 'NOTE'}
 
@@ -33,8 +33,7 @@ def process_gedcom_line(line):
         # Flip tag and arguments if the argument is 'INDI' or 'FAM'
         if arguments and arguments[0] in {'INDI', 'FAM'}:
             *arguments, tag = tag, *arguments
-#            tag = arguments.pop(0)  # Remove 'INDI' or 'FAM' from arguments and assign to tag
-
+        # tag = arguments.pop(0)  # Remove 'INDI' or 'FAM' from arguments and assign to tag
 
     # Extract the data from the arguments (as it's a list)
     if verbouseLogger:
@@ -104,11 +103,10 @@ def parse_date(date_string):
 def create_family_from_lines(data, individuals_dict):
     families = []
     current_family = None
-    current_tag = None
+    expecting_marriage_date = False
+    expecting_divorce_date = False
     
     for line in data:
-        if logger:
-            print("create_family_from_lines: " + line)
         tokens = line.split('|')
         #if len(tokens) < 2:
         #    continue
@@ -123,7 +121,12 @@ def create_family_from_lines(data, individuals_dict):
         if tag == "FAM":
             if current_family:
                 families.append(current_family)
-            current_family = {'ID': value, 'Married': 'N/A', 'Divorced': 'N/A', 'Husband ID': '', 'Husband Name': '', 'Wife ID': '', 'Wife Name': '', 'Children': []}
+            current_family = {
+                'ID': value,
+                'Children': [],
+                'Married': [],  # Initialize with empty string
+                'Divorced': []  # Initialize with empty string
+            }
         elif tag == "HUSB":
             current_family['Husband ID'] = value
             current_family['Husband Name'] = individuals_dict.get(value, {}).get('name', 'Unknown')
@@ -131,15 +134,27 @@ def create_family_from_lines(data, individuals_dict):
             current_family['Wife ID'] = value
             current_family['Wife Name'] = individuals_dict.get(value, {}).get('name', 'Unknown')
         elif tag == "CHIL":
+            # Append child ID to the Children list
             current_family['Children'].append(value)
-        elif tag == "MARR" or tag == "DIV":
-            current_tag = tag
-        elif current_tag and current_tag in ["MARR", "DIV"] and tag == "DATE":
-            if current_tag == "MARR":
+        elif tag == "MARR":
+            expecting_marriage_date = True
+            continue  # Skip to next iteration to capture the date
+        elif tag == "DIV":
+            expecting_divorce_date = True
+            continue  # Skip to next iteration to capture the date
+        elif tag == "DATE":
+            if expecting_marriage_date:
                 current_family['Married'] = value
-            elif current_tag == "DIV":
+                if verbouseLogger:
+                    print("Married date value is now:", current_family['Married'])
+                expecting_marriage_date = False
+            elif expecting_divorce_date:
                 current_family['Divorced'] = value
-            current_tag = None
+                expecting_divorce_date = False
+        else:
+            # Reset flags if neither marriage nor divorce date is expected
+            expecting_marriage_date = False
+            expecting_divorce_date = False
     
     if current_family:
         families.append(current_family)
@@ -255,7 +270,6 @@ def main():
             alive = "Yes" if not data.get('death', '') else "No"
             individual_table.add_row([individual_id, data.get('name', ''), data.get('sex', ''), birth_date, age, alive, data.get('death', '')])
 
-        print(individual_table)
         # Create a custom lookup dictionary for individuals
         individuals_dict = {}
         for indiv_tuple in individuals:
@@ -270,7 +284,9 @@ def main():
                 'sex': individual_sex,
                 'birth': individual_birth
             }
-            print("Processed:", indiv_tuple)
+
+            if logger:
+                print("Processed:", indiv_tuple)
 
         families = create_family_from_lines(valid_lines, individuals_dict)
         if logger:
@@ -292,14 +308,14 @@ def main():
             children_names = [individuals_dict.get(child_id, {}).get('name', 'Unknown') for child_id in children_ids]
             children = ', '.join(children_names) if children_names else 'N/A'
             
-            married_status = data.get('married', 'N/A')
-            divorced_status = data.get('divorced', 'N/A')
+            married_value = data.get('Married')
+            married_status = 'N/A' if married_value == [] else married_value
+
+            divorced_value = data.get('Divorced')
+            divorced_status = 'N/A' if divorced_value == [] else divorced_value
             
             family_table.add_row([family_id, married_status, divorced_status, husband_id, husband_name, wife_id, wife_name, children])
 
-        print(family_table)
-
-        print(family_table)
         # Print individual data
         print("\nIndividuals:")
         print(individual_table)
