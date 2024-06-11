@@ -1,0 +1,161 @@
+0 NOTE Nitin Verma
+0 @I1@ INDI
+1 NAME Daniel /Carnegie/
+2 GIVN Daniel
+2 SURN Carnegie
+2 _MARNM Carnegie
+1 SEX M
+1 BIRT
+2 DATE 3 APR 1977
+1 FAMS @F5@
+1 FAMC @F1@
+0 @I2@ INDI
+1 NAME Randolph /Carnegie/
+2 GIVN Randolph
+2 SURN Carnegie
+2 _MARNM Carnegie
+1 SEX M
+1 BIRT
+2 DATE 3 JUN 1930
+1 DEAT Y
+2 DATE 4 MAR 1987
+1 FAMS @F1@
+0 @I3@ INDI
+1 NAME Emma /Radshaw/
+2 GIVN Emma
+2 SURN Radshaw
+2 _MARNM Carnegie
+1 SEX F
+1 BIRT
+2 DATE 3 APR 1937
+1 FAMS @F1@
+1 FAMS @F4@
+1 FAMC @F2@
+0 @I4@ INDI
+1 NAME Veronica /Sullivan/
+2 GIVN Veronica
+2 SURN Sullivan
+2 _MARNM Sullivan
+1 SEX F
+1 BIRT
+2 DATE 5 APR 1982
+1 FAMS @F3@
+1 FAMC @F4@
+0 @I5@ INDI
+1 NAME Emmanuel /Sullivan/
+2 GIVN Emmanuel
+2 SURN Sullivan
+2 _MARNM Sullivan
+1 SEX M
+1 BIRT
+2 DATE 3 MAR 1932
+1 FAMS @F4@
+0 @I6@ INDI
+1 NAME Ruth /Carnegie/
+2 GIVN Ruth
+2 SURN Carnegie
+2 _MARNM Carnegie
+1 SEX F
+1 BIRT
+2 DATE 8 NOV 2005
+1 FAMC @F5@
+0 @I7@ INDI
+1 NAME Pamela /Donovan/
+2 GIVN Pamela
+2 SURN Donovan
+2 _MARNM Carnegie
+1 SEX F
+1 BIRT
+2 DATE 9 MAY 1978
+1 FAMS @F5@
+0 @I8@ INDI
+1 NAME Samantha /Carnegie/
+2 GIVN Samantha
+2 SURN Carnegie
+2 _MARNM Carnegie
+1 SEX F
+1 BIRT
+2 DATE 5 SEP 2005
+1 FAMC @F5@
+0 @I9@ INDI
+1 NAME Stephen /Sullivan/
+2 GIVN Stephen
+2 SURN Sullivan
+2 _MARNM Sullivan
+1 SEX M
+1 BIRT
+2 DATE 7 AUG 1984
+1 FAMC @F4@
+0 @I10@ INDI
+1 NAME Douglas /Tapper/
+2 GIVN Douglas
+2 SURN Tapper
+2 _MARNM Tapper
+1 SEX M
+1 BIRT
+2 DATE 18 JUN 1979
+1 FAMS @F3@
+0 @I11@ INDI
+1 NAME Kailey /Tupper/
+2 GIVN Kailey
+2 SURN Tupper
+2 _MARNM Tupper
+1 SEX F
+1 BIRT
+2 DATE 9 OCT 2008
+1 FAMC @F3@
+0 @I12@ INDI
+1 NAME Samuel /Radshaw/
+2 GIVN Samuel
+2 SURN Radshaw
+2 _MARNM Radshaw
+1 SEX M
+1 BIRT
+2 DATE 7 OCT 1895
+1 DEAT Y
+2 DATE 26 MAY 1977
+1 FAMS @F2@
+0 @I13@ INDI
+1 NAME Cynthia /Bradshaw/
+2 GIVN Cynthia
+2 SURN Bradshaw
+2 _MARNM Radshaw
+1 SEX F
+1 BIRT
+2 DATE 18 SEP 1901
+1 DEAT Y
+2 DATE 9 AUG 1985
+1 FAMS @F2@
+0 @F1@ FAM
+1 HUSB @I2@
+1 WIFE @I3@
+1 CHIL @I1@
+1 _CURRENT Y
+1 _PRIMARY Y
+0 @F2@ FAM
+1 HUSB @I12@
+1 WIFE @I13@
+1 CHIL @I3@
+1 _CURRENT Y
+1 _PRIMARY Y
+0 @F3@ FAM
+1 HUSB @I10@
+1 WIFE @I4@
+1 CHIL @I11@
+1 _CURRENT Y
+1 _PRIMARY Y
+0 @F4@ FAM
+1 HUSB @I5@
+1 WIFE @I3@
+1 CHIL @I4@
+1 CHIL @I9@
+1 _CURRENT N
+1 _PRIMARY N
+0 @F5@ FAM
+1 HUSB @I1@
+1 WIFE @I7@
+1 CHIL @I6@
+1 CHIL @I8@
+1 _CURRENT N
+1 _PRIMARY N
+0 TRLR
