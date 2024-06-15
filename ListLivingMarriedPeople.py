@@ -54,6 +54,21 @@ def list_living_married_people(individuals, families):
                     #reset the data to avoid double entries
                     husband_data = None
                     wife_data = None
-    if logger:
-        print(living_married_individuals)
+
+        # Print the results directly within the function
+    print("\nLiving Married Individuals Start:")
+    if verbouseLogger:
+        print("list_living_married_people - results:", living_married_individuals)
+    for entry in living_married_individuals:
+        if logger:
+            print(entry)
+        individual_id = entry['ID']
+        if logger:
+            print(individual_id)
+        individual_name = entry['Details'].get('name', 'Unknown')
+        if logger:
+            print(individual_name)
+        spouse_id = entry['Spouse_ID']
+        print(f"ID: {individual_id}, Name: {individual_name}, Married to {spouse_id}")
+    print("Living Married Individuals End")
     return living_married_individuals

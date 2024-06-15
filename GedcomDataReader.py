@@ -355,35 +355,15 @@ def main():
         print("\nFamilies:")
         print(family_table)
 
-        # List living, married individuals
+        #User Story 29
         if perform_list_living_married_people:
-            print("\nLiving Married Individuals Start:")
-
-            living_married_individuals = list_living_married_people(individuals, families)
-            if verbouseLogger:
-                print("list_living_married_people - results:", living_married_individuals)
-            for entry in living_married_individuals:
-                if logger:
-                    print (entry)
-                individual_id = entry['ID']
-                if logger:
-                    print(individual_id)
-                individual_name = entry['Details'].get('name', 'Unknown')
-                if logger:
-                    print(individual_name)
-                spouse_id = entry['Spouse_ID']
-                print(f"ID: {individual_id}, Name: {individual_name}, Married to {spouse_id}")
-
-            print("Living Married Individuals End")
-
-        print("FAMILYS ARE: ", families)
-        #call list_deceased_individuals
-        deceased_individuals = list_deceased_individuals(individuals)
-        print(deceased_individuals)
+            list_living_married_people(individuals, families)
+        #User Story 30
+        if perform_list_deceased_individuals:
+            list_deceased_individuals(individuals)
 
         if verbouseLogger:
             print("Program Ended Successfully")
-
 
     except FileNotFoundError:
         print(f"File '{gedcom_file_path}' not found.")
