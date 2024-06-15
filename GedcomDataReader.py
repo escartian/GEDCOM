@@ -1,11 +1,8 @@
 from collections import defaultdict
 from datetime import datetime
 from prettytable import PrettyTable
-
-#global variables
-logger = False
-verbouseLogger = False
-valid_tags = {'INDI', 'NAME', 'SEX', 'BIRT', 'DEAT', 'FAMC', 'FAMS', 'FAM', 'MARR', 'HUSB', 'WIFE', 'CHIL', 'DIV', 'DATE', 'HEAD', 'TRLR', 'NOTE'}
+from ListLivingMarriedPeople import list_living_married_people
+from Constants import *
 
 def process_gedcom_line(line):
     tokens = line.split()
@@ -217,8 +214,42 @@ def create_individual_from_lines(lines):
         individuals[current_indi_id] = current_data
 
     return individuals.items()  # Return a tuple of (individual ID, individual data)
+
+def list_deceased_individuals(individuals):
+    """
+    Lists all deceased individuals along with their details.
+
+    :param individuals: A dictionary view object of individuals extracted from the GEDCOM file.
+    :return: None (prints the details of deceased individuals), or a list of deceased individuals' details.
+    """
+    deceased_individuals = []
+    for individual_id, data in individuals:
+        death_date = data.get('death')
+        if death_date:
+            # If verbose logging is enabled, print detailed information about the deceased individual
+            if logger:
+                print(f"Deceased Individual: ID={individual_id}, Name={data.get('name', 'Unknown')}, Sex={data.get('sex', 'Unknown')}, "
+                      f"Birthday={data.get('birth', 'N/A')}, Death Date={death_date}")
+            deceased_individuals.append({
+                'ID': individual_id,
+                'Name': data.get('name', 'Unknown'),
+                'Sex': data.get('sex', 'Unknown'),
+                'Birthday': data.get('birth', 'N/A'),
+                'Death Date': death_date
+            })
+    
+    # If there are no deceased individuals, inform the user
+    if not deceased_individuals:
+        print("No deceased individuals found.")
+    else:
+        # Optionally, print a header for better readability
+        print("\nDeceased Individuals:")
+        for entry in deceased_individuals:
+            print(entry)
+        # Or return the list of deceased individuals for further processing
+        return deceased_individuals
+
 def main():
-    gedcom_file_path = "IgorBichFakeFamily.ged"
     if logger:
         print("Starting application")
     try:
@@ -323,6 +354,36 @@ def main():
         # Print family data
         print("\nFamilies:")
         print(family_table)
+
+        # List living, married individuals
+        if perform_list_living_married_people:
+            print("\nLiving Married Individuals Start:")
+
+            living_married_individuals = list_living_married_people(individuals, families)
+            if verbouseLogger:
+                print("list_living_married_people - results:", living_married_individuals)
+            for entry in living_married_individuals:
+                if logger:
+                    print (entry)
+                individual_id = entry['ID']
+                if logger:
+                    print(individual_id)
+                individual_name = entry['Details'].get('name', 'Unknown')
+                if logger:
+                    print(individual_name)
+                spouse_id = entry['Spouse_ID']
+                print(f"ID: {individual_id}, Name: {individual_name}, Married to {spouse_id}")
+
+            print("Living Married Individuals End")
+
+        print("FAMILYS ARE: ", families)
+        #call list_deceased_individuals
+        deceased_individuals = list_deceased_individuals(individuals)
+        print(deceased_individuals)
+
+        if verbouseLogger:
+            print("Program Ended Successfully")
+
 
     except FileNotFoundError:
         print(f"File '{gedcom_file_path}' not found.")
