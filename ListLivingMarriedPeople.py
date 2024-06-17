@@ -8,6 +8,7 @@ def list_living_married_people(individuals, families):
     :param families: A list of family dictionaries parsed from the GEDCOM file.
     :return: A list of tuples containing the ID and details of each living, married individual.
     """
+    print("\n=====Listing Living Married Individuals=====")
     living_married_individuals = []
 
     # Iterate over each family
@@ -56,7 +57,6 @@ def list_living_married_people(individuals, families):
                     wife_data = None
 
         # Print the results directly within the function
-    print("\nLiving Married Individuals Start:")
     if verbouseLogger:
         print("list_living_married_people - results:", living_married_individuals)
     for entry in living_married_individuals:
@@ -70,5 +70,5 @@ def list_living_married_people(individuals, families):
             print(individual_name)
         spouse_id = entry['Spouse_ID']
         print(f"ID: {individual_id}, Name: {individual_name}, Married to {spouse_id}")
-    print("Living Married Individuals End")
+
     return living_married_individuals
