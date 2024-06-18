@@ -1,11 +1,9 @@
 from collections import defaultdict
 from datetime import datetime
 from prettytable import PrettyTable
-
-#global variables
-logger = False
-verbouseLogger = False
-valid_tags = {'INDI', 'NAME', 'SEX', 'BIRT', 'DEAT', 'FAMC', 'FAMS', 'FAM', 'MARR', 'HUSB', 'WIFE', 'CHIL', 'DIV', 'DATE', 'HEAD', 'TRLR', 'NOTE'}
+from ListLivingMarriedPeople import list_living_married_people
+from Lists import *
+from Constants import *
 
 def process_gedcom_line(line):
     tokens = line.split()
@@ -217,8 +215,12 @@ def create_individual_from_lines(lines):
         individuals[current_indi_id] = current_data
 
     return individuals.items()  # Return a tuple of (individual ID, individual data)
+
+
+
 def main():
-    gedcom_file_path = "IgorBichFakeFamily.ged"
+    print("Program Starting...")
+
     if logger:
         print("Starting application")
     try:
@@ -278,11 +280,13 @@ def main():
             individual_name = individual_details.get('name', 'Unknown')
             individual_sex = individual_details.get('sex', 'Unknown')
             individual_birth = individual_details.get('birth', 'Unknown')
+            individual_death = individual_details.get('death', 'Unknown')
             
             individuals_dict[individual_id] = {
                 'name': individual_name,
                 'sex': individual_sex,
-                'birth': individual_birth
+                'birth': individual_birth,
+                'death': individual_death,
             }
 
             if logger:
@@ -323,6 +327,27 @@ def main():
         # Print family data
         print("\nFamilies:")
         print(family_table)
+
+        #User Story 29
+        if perform_list_living_married_people:
+            list_living_married_people(individuals, families)
+        #User Story 30
+        if perform_list_deceased_individuals:
+            list_deceased_individuals(individuals)
+
+        #User Story 31
+        if perform_list_living_single_people:
+            list_living_single_people(individuals, families)
+
+        #User Story 32
+        if perform_list_multiple_births:
+            list_multiple_births(individuals, families)
+
+        #User Story 33
+        if perform_list_orphans:
+            list_orphans(individuals_dict, families)
+
+        print("========================================\nProgram Ended Successfully")
 
     except FileNotFoundError:
         print(f"File '{gedcom_file_path}' not found.")
