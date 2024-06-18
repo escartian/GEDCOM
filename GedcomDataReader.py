@@ -446,7 +446,7 @@ def main():
         print("\nFamilies:")
         print(family_table)
 
-        print("====== Dates b4 current Date ======")
+        print("====== Dates after current Date ======")
         try:
             print(dates_before_current_date([line.strip() for line in lines]))
         except:
