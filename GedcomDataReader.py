@@ -560,8 +560,6 @@ def create_individual_from_lines(lines):
 def years_difference(date1, date2):
     return abs((date1 - date2).days) / 365.25
 def check_constraints(individuals, families):
-    errors = []
-
     # Collect all marriages
     marriages = {}
     for fam_id, fam in families.items():
@@ -584,7 +582,7 @@ def check_constraints(individuals, families):
         ind_marriages.sort()
         for i in range(len(ind_marriages) - 1):
             if ind_marriages[i][1] > ind_marriages[i + 1][0]:
-                errors.append(f"ERROR: FAMILY: US11: Individual {ind_id} has overlapping marriages in families {ind_marriages[i][2]} and {ind_marriages[i + 1][2]}.")
+                print("ERROR: FAMILY: US11: Individual {ind_id} has overlapping marriages in families {ind_marriages[i][2]} and {ind_marriages[i + 1][2]}.")
 
     # Check other constraints
     for fam_id, fam in families.items():
@@ -599,9 +597,9 @@ def check_constraints(individuals, families):
             for child in children:
                 birth_date = child['BIRT']
                 if birth_date and birth_date < marriage_date:
-                    errors.append(f"ERROR: FAMILY: US08: Child {child} born before marriage.")
+                    print("ERROR: FAMILY: US08: Child {child} born before marriage.")
                 if divorce_date and birth_date and birth_date > divorce_date and birth_date <= divorce_date + timedelta(days=9*30):
-                    errors.append(f"ERROR: FAMILY: US08: Child {child} born more than 9 months after divorce.")
+                    print("ERROR: FAMILY: US08: Child {child} born more than 9 months after divorce.")
         print("=====Checking that Child should be born before death of mother and before 9 months after death of father=====")
         # Check constraint 2: Child should be born before death of mother and before 9 months after death of father
         wife_death_date = wife['DEAT']
@@ -610,30 +608,87 @@ def check_constraints(individuals, families):
             birth_date = child['BIRT']
             if birth_date:
                 if wife_death_date and birth_date > wife_death_date:
-                    errors.append(f"ERROR: FAMILY: US09: Child {child} born after death of mother.")
+                    print("ERROR: FAMILY: US09: Child {child} born after death of mother.")
                 if husband_death_date and birth_date > husband_death_date + timedelta(days=9*30):
-                    errors.append(f"ERROR: FAMILY: US09: Child {child} born more than 9 months after death of father.")
+                    print("ERROR: FAMILY: US09: Child {child} born more than 9 months after death of father.")
         print("=====Checking that Marriage should be at least 14 years after birth of both spouses=====")
         # Check constraint 3: Marriage should be at least 14 years after birth of both spouses
         husband_birth_date = husband['BIRT']
         wife_birth_date = wife['BIRT']
         if marriage_date and husband_birth_date and wife_birth_date:
             if years_difference(marriage_date, husband_birth_date) < 14:
-                errors.append(f"ERROR: FAMILY: US10: Marriage of husband {fam['HUSB']} occurred before he was 14.")
+                print("ERROR: FAMILY: US10: Marriage of husband {fam['HUSB']} occurred before he was 14.")
             if years_difference(marriage_date, wife_birth_date) < 14:
-                errors.append(f"ERROR: FAMILY: US10: Marriage of wife {fam['WIFE']} occurred before she was 14.")
+                print("ERROR: FAMILY: US10: Marriage of wife {fam['WIFE']} occurred before she was 14.")
         print("=====Checking that Parents' ages at child's birth=====")
         # Check constraint 5: Parents' ages at child's birth
         for child in children:
             birth_date = child['BIRT']
             if birth_date:
                 if husband_birth_date and years_difference(birth_date, husband_birth_date) > 80:
-                    errors.append(f"ERROR: FAMILY: US12: Father {fam['HUSB']} more than 80 years older than child {child}.")
+                    print("ERROR: FAMILY: US12: Father {fam['HUSB']} more than 80 years older than child {child}.")
                 if wife_birth_date and years_difference(birth_date, wife_birth_date) > 60:
-                    errors.append(f"ERROR: FAMILY: US12: Mother {fam['WIFE']} more than 60 years older than child {child}.")
+                    print("ERROR: FAMILY: US12: Mother {fam['WIFE']} more than 60 years older than child {child}.")
 
-    return errors
+        if 'CHIL' in fam:
+            children = fam['CHIL']
+            birth_dates = [individuals[child]['BIRT'] for child in children]
+            birth_dates.sort()
+            print("=====Checking that Birth dates of siblings should be more than 8 months apart or less than 2 days apart (twins may be born one day apart, e.g. 11:59 PM and 12:02 AM the following calendar day) =====")
+            # Check birth dates interval constraint
+            for i in range(len(birth_dates) - 1):
+                diff = (birth_dates[i + 1] - birth_dates[i]).days
+                if diff < 2 or diff > 243:
+                    continue
+                print("ERROR: FAMILY: US13: Siblings {children[i]} and {children[i + 1]} born too close together or too far apart: {diff} days apart.")
+            print("=====Checking that No more than five siblings should be born at the same time =====")
+            # Check multiple births constraint
+            birth_date_counts = {}
+            for date in birth_dates:
+                if date not in birth_date_counts:
+                    birth_date_counts[date] = 0
+                birth_date_counts[date] += 1
 
+            for date, count in birth_date_counts.items():
+                if count > 5:
+                    print("ERROR: FAMILY: US14: More than five siblings born at the same time on {date}.")
+
+            # Check fewer than 15 siblings constraint
+            print("=====Checking that There should be fewer than 15 siblings in a family =====")
+            if len(children) >= 15:
+                print("ERROR: FAMILY: US15: More than 14 siblings in family {fam_id}.")
+
+        # Check male last names constraint
+        print("=====Checking that All male members of a family should have the same last name =====")
+        male_last_names = set()
+        for child_id in fam.get('CHIL', []):
+            child = individuals[child_id]
+            if child['SEX'] == 'M':
+                last_name = child['NAME'].split('/')[-1].strip()
+                male_last_names.add(last_name)
+        if len(male_last_names) > 1:
+            print("ERROR: FAMILY: US16: Males in family {fam_id} do not have the same last name: {male_last_names}.")
+
+        # Check no marriages to descendants
+        print("=====Checking that Parents should not marry any of their descendants =====")
+        husband_id = fam.get('HUSB')
+        wife_id = fam.get('WIFE')
+        descendants = set()
+
+        def get_descendants(ind_id, families, individuals):
+            nonlocal descendants
+            for fam_id in individuals[ind_id]['FAMS']:
+                for child_id in families[fam_id]['CHIL']:
+                    descendants.add(child_id)
+                    get_descendants(child_id, families, individuals)
+
+        if husband_id:
+            get_descendants(husband_id, families, individuals)
+        if wife_id:
+            get_descendants(wife_id, families, individuals)
+
+        if husband_id in descendants or wife_id in descendants:
+            print("ERROR: FAMILY: US17: Parent married to a descendant in family {fam_id}.")
 
 def parse_gedcom(file_path):
     individuals = {}
@@ -864,12 +919,20 @@ def main():
         #User Story 11 - No bigamy	Marriage should not occur during marriage to another spouse
 
         #User Story 12 - Parents not too old	Mother should be less than 60 years older than her children and father should be less than 80 years older than his children
-        individuals_t, families_t = parse_gedcom(gedcom_file_path)
-        errors = check_constraints(individuals_t, families_t)
+        
+        # User Story 13 - Siblings spacing	Birth dates of siblings should be more than 8 months apart or less than 2 days apart (twins may be born one day apart, e.g. 11:59 PM and 12:02 AM the following calendar day)
 
-        # Print errors
-        for error in errors:
-            print(error)
+        # User Story 14 - Multiple births <= 5	No more than five siblings should be born at the same time
+
+        # User Story 15 - Fewer than 15 siblings	There should be fewer than 15 siblings in a family
+
+        # User Story 16 - Male last names	All male members of a family should have the same last name
+
+        # User Story 17 - No marriages to descendants	Parents should not marry any of their descendants
+            
+        individuals_t, families_t = parse_gedcom(gedcom_file_path)
+        check_constraints(individuals_t, families_t)
+
         print("========================================\nProgram Ended Successfully")
 
     except FileNotFoundError:
