@@ -2,6 +2,7 @@ import re
 from collections import defaultdict
 from prettytable import PrettyTable
 from ListLivingMarriedPeople import list_living_married_people
+from DuplicateCheckers import *
 from Lists import *
 from Constants import *
 from datetime import datetime, timedelta
@@ -743,6 +744,7 @@ def parse_gedcom(file_path):
                     families[current_family][date_tag] = date
 
     return individuals, families
+
 def main():
     print("Program Starting...")
 
@@ -854,6 +856,19 @@ def main():
         print("\nFamilies:")
         print(family_table)
 
+        #User Story 22
+        if perform_check_unique_ids:
+            check_unique_ids(individuals, families)
+        #User Story 23
+        if perform_detect_duplicate_infividuals:
+            detect_duplicate_individuals(individuals_dict)
+        #User Story 24
+        if perform_detect_duplicate_families:
+            detect_duplicate_families(individuals_dict, families)
+        #User Story 25
+        if perform_detect_duplicate_children:
+            detect_duplicate_children(individuals_dict, families)
+
         print("====== Dates after current Date ======")
         try:
             print(dates_before_current_date([line.strip() for line in lines]))
@@ -890,22 +905,18 @@ def main():
         except:
             print("error")
 
-
         #User Story 29
         if perform_list_living_married_people:
             list_living_married_people(individuals, families)
         #User Story 30
         if perform_list_deceased_individuals:
             list_deceased_individuals(individuals)
-
         #User Story 31
         if perform_list_living_single_people:
             list_living_single_people(individuals, families)
-
         #User Story 32
         if perform_list_multiple_births:
             list_multiple_births(individuals, families)
-
         #User Story 33
         if perform_list_orphans:
             list_orphans(individuals_dict, families)
