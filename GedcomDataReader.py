@@ -346,6 +346,78 @@ def over_150(gedcom_data):
         i += 1
     # over_150 = {IND_ID: (birth date, death date)}
     return over_150
+
+def siblings_marrying(gedcom_data):
+    individuals = {}
+    families = {}
+    current_id = None
+    current_tag = None
+
+    for line in gedcom_data:
+        parts = line.strip().split()
+        if not parts:
+            continue
+
+        if parts[0] == "0":
+            if parts[1].startswith("@I"):
+                current_id = parts[1]
+                current_tag = "INDI"
+                individuals[current_id] = {'famc': None, 'fams': []}
+            elif parts[1].startswith("@F"):
+                current_id = parts[1]
+                current_tag = "FAM"
+                families[current_id] = {'husb': None, 'wife': None, 'chil': []}
+        elif parts[0] == "1":
+            if current_tag == "INDI" and parts[1] == "FAMC":
+                individuals[current_id]['famc'] = parts[2]
+            elif current_tag == "INDI" and parts[1] == "FAMS":
+                individuals[current_id]['fams'].append(parts[2])
+            elif current_tag == "FAM" and parts[1] in ["HUSB", "WIFE"]:
+                families[current_id][parts[1].lower()] = parts[2]
+            elif current_tag == "FAM" and parts[1] == "CHIL":
+                families[current_id]['chil'].append(parts[2])
+
+    siblings = {}
+    for fam_id, fam_data in families.items():
+        for child in fam_data['chil']:
+            if child not in siblings:
+                siblings[child] = set(fam_data['chil']) - {child}
+            else:
+                siblings[child].update(set(fam_data['chil']) - {child})
+
+    sibling_marriages = {}
+    for indi_id, indi_data in individuals.items():
+        if indi_data['fams']:
+            for fam in indi_data['fams']:
+                spouse = families[fam]['husb'] if families[fam]['wife'] == indi_id else families[fam]['wife']
+                if spouse in siblings.get(indi_id, []):
+                    sibling_marriages[fam] = (indi_id, spouse)
+
+    return sibling_marriages
+
+def invalid_dates(gedcom_data):
+    invalid_dates = {}
+
+    # Function to check if a date string is valid
+    def is_valid_date(date_str):
+        try:
+            datetime.strptime(date_str, '%d %b %Y')
+            return True
+        except ValueError:
+            return False
+    
+    # Iterate through each line in GEDCOM data
+    for line in gedcom_data:
+        parts = line.split()
+        if len(parts) >= 3 and parts[0] == '2' and parts[1] == 'DATE':
+            date_str = ' '.join(parts[2:])
+            if not is_valid_date(date_str):
+                # Extract the key for the invalid date
+                key = f"{parts[0]} {parts[1]} {parts[2]}"
+                invalid_dates[key] = date_str
+    
+    return invalid_dates
+
 def process_gedcom_line(line):
     tokens = line.split()
     if verbouseLogger:
@@ -902,6 +974,16 @@ def main():
         print("====== Age over 150 ======")
         try:
             print(over_150([line.strip() for line in lines]))
+        except:
+            print("error")
+        print("====== siblings married ======")
+        try:
+            print(siblings_marrying([line.strip() for line in lines]))
+        except:
+            print("error")
+        print("====== invalid Dates ======")
+        try:
+            print(invalid_dates([line.strip() for line in lines]))
         except:
             print("error")
 
