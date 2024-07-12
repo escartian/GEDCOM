@@ -75,7 +75,7 @@ class sprint3:
         
         return invalid_dates
 
-        
+    '''    
     def find_gender_violations(self, gedcom_data):
         gender_violations = []
 
@@ -97,3 +97,4 @@ class sprint3:
             i += 1
 
         return gender_violations
+    '''
