@@ -1,32 +1,5 @@
 from datetime import datetime, timedelta
 
-def parse_gedcom_data(gedcom_data):
-    individuals = {}
-    families = {}
-    current_indi_id = None
-    current_fam_id = None
-    
-    for line in gedcom_data:
-        parts = line.split()
-        level = int(parts[0])
-        tag = parts[1]
-        
-        if level == 0:
-            if tag == 'INDI':
-                current_indi_id = parts[1][1:-1]  # Remove '@' symbols
-                individuals[current_indi_id] = {'NAME': None, 'SEX': None}
-            elif tag == 'FAM':
-                current_fam_id = parts[1][1:-1]  # Remove '@' symbols
-                families[current_fam_id] = {'HUSB': None, 'WIFE': None}
-        elif level == 1:
-            if tag == 'SEX' and current_indi_id:
-                individuals[current_indi_id][tag] = parts[2]
-            elif tag == 'HUSB' and current_fam_id:
-                families[current_fam_id][tag] = parts[2][1:-1]  # Remove '@' symbols
-            elif tag == 'WIFE' and current_fam_id:
-                families[current_fam_id][tag] = parts[2][1:-1]  # Remove '@' symbols
-    
-    return individuals, families
 
 class sprint3:
 
