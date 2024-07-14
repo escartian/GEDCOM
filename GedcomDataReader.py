@@ -816,7 +816,61 @@ def parse_gedcom(file_path):
                     families[current_family][date_tag] = date
 
     return individuals, families
+        
+def list_recent_births(individuals):
+    table = PrettyTable()
+    table.field_names = ["ID", "Name", "Birth Date"]
+    today = datetime.today()
+    for ind_id, ind in individuals.items():
+        if ind['BIRT'] and (today - ind['BIRT']).days <= 30:
+            table.add_row([ind_id, ind.get('NAME', 'N/A'), ind['BIRT'].strftime("%d %b %Y")])
+    print("Recent Births:")
+    print(table)
 
+def list_recent_deaths(individuals):
+    table = PrettyTable()
+    table.field_names = ["ID", "Name", "Death Date"]
+    today = datetime.today()
+    for ind_id, ind in individuals.items():
+        if ind['DEAT'] and (today - ind['DEAT']).days <= 30:
+            table.add_row([ind_id, ind.get('NAME', 'N/A'), ind['DEAT'].strftime("%d %b %Y")])
+    print("Recent Deaths:")
+    print(table)
+
+def list_recent_survivors(individuals, families):
+    table = PrettyTable()
+    table.field_names = ["Deceased ID", "Deceased Name", "Survivor ID", "Survivor Name"]
+    today = datetime.today()
+    for ind_id, ind in individuals.items():
+        if ind['DEAT'] and (today - ind['DEAT']).days <= 30:
+            # List living spouses
+            for fam_id in ind['FAMS']:
+                family = families[fam_id]
+                spouse_id = family['HUSB'] if family['HUSB'] != ind_id else family['WIFE']
+                if individuals[spouse_id]['DEAT'] is None:
+                    table.add_row([ind_id, ind.get('NAME', 'N/A'), spouse_id, individuals[spouse_id].get('NAME', 'N/A')])
+            # List living children
+            if ind['FAMC']:
+                for fam_id in ind['FAMC']:
+                    family = families[fam_id]
+                    for child_id in family['CHIL']:
+                        if individuals[child_id]['DEAT'] is None:
+                            table.add_row([ind_id, ind.get('NAME', 'N/A'), child_id, individuals[child_id].get('NAME', 'N/A')])
+    print("Recent Survivors of Deceased:")
+    print(table)
+
+def list_upcoming_birthdays(individuals):
+    table = PrettyTable()
+    table.field_names = ["ID", "Name", "Birthday"]
+    today = datetime.today()
+    for ind_id, ind in individuals.items():
+        if ind['BIRT'] and ind['DEAT'] is None:
+            birth_date_this_year = ind['BIRT'].replace(year=today.year)
+            if 0 <= (birth_date_this_year - today).days <= 30:
+                table.add_row([ind_id, ind.get('NAME', 'N/A'), ind['BIRT'].strftime("%d %b %Y")])
+    print("Upcoming Birthdays:")
+    print(table)
+        
 def main():
     print("Program Starting...")
 
@@ -1025,7 +1079,15 @@ def main():
             
         individuals_t, families_t = parse_gedcom(gedcom_file_path)
         check_constraints(individuals_t, families_t)
-
+        # User Story 35 - List Recent Births - List all people in a GEDCOM file who were born in the last 30 days
+        list_recent_births(individuals_t)
+        # User Story 36 - List Recent Deaths - List all people in a GEDCOM file who died in the last 30 days
+        list_recent_deaths(individuals_t)
+        # User Story 37 - List Recent Survivors - List all living spouses and descendants of people in a GEDCOM file who died in the last 30 days
+        list_recent_survivors(individuals_t, families_t)
+        # User Story 38 - List Upcoming Birthdays - List all living people in a GEDCOM file whose birthdays occur in the next 30 days
+        list_upcoming_birthdays(individuals_t)
+        
         print("========================================\nProgram Ended Successfully")
 
     except FileNotFoundError:
