@@ -1,5 +1,5 @@
 import unittest
-from GedcomDataReader import check_unique_ids
+from DuplicateCheckers import check_unique_ids
 
 class TestCheckUniqueIDs(unittest.TestCase):
     

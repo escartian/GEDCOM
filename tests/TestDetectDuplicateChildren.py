@@ -1,5 +1,5 @@
 import unittest
-from GedcomDataReader import detect_duplicate_children
+from DuplicateCheckers import detect_duplicate_children
 
 class TestDetectDuplicateChildren(unittest.TestCase):
     def setUp(self):

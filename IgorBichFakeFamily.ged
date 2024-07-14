@@ -22,7 +22,7 @@
 2 DATE 22 SEP 2023
 1 FAMS @F1@
 1 FAMC @F2@
-0 @I2@ INDI
+0 @I1@ INDI
 1 NAME John /Smith/
 2 GIVN John
 2 SURN Smith
@@ -40,7 +40,7 @@
 2 DATE 2 MAR 1960
 1 FAMS @F2@
 1 FAMC @F3@
-0 @I4@ INDI
+0 @I1@ INDI
 1 NAME Joeseph /Summers/
 2 GIVN Joeseph
 2 SURN Summers
