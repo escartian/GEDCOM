@@ -736,6 +736,9 @@ def check_constraints(individuals, families):
         male_last_names = set()
         for child_id in fam.get('CHIL', []):
             child = individuals[child_id]
+            if child.get('SEX') == None:
+                print("ERROR: FAMILY: US16: Child {child_id} in family {fam_id} does not have a gender.")
+                continue
             if child['SEX'] == 'M':
                 last_name = child['NAME'].split('/')[-1].strip()
                 male_last_names.add(last_name)
@@ -927,7 +930,6 @@ def main():
 
         # Create a custom lookup dictionary for individuals
         individuals_dict = {}
-        families_dict = {}
         for indiv_tuple in individuals:
             individual_id = indiv_tuple[0]
             individual_details = indiv_tuple[1]
@@ -950,6 +952,7 @@ def main():
         if logger:
             print("Found " + str(len(families)) + " Families Processed")
 
+        families_dict = {family['ID']: family for family in families}
 
         # Create family table
         family_table = PrettyTable()
@@ -1076,7 +1079,29 @@ def main():
         # User Story 16 - Male last names	All male members of a family should have the same last name
 
         # User Story 17 - No marriages to descendants	Parents should not marry any of their descendants
-            
+        
+
+        if perform_Corresponding_entries:
+           
+            errors = check_corresponding_entries(individuals_dict, families_dict)
+            if errors:
+                print("\n".join(errors))
+
+        #reprinting the individuals table since it already included the ages
+        if perform_include_individual_ages:
+            print("Individuals table data already included the age")
+            include_individual_ages(individuals)
+        
+        #print(type(individuals_dict), individuals_dict)
+        #print(type(families_dict), families_dict)
+        if perform_order_siblings_by_age:
+            ordered_siblings = order_siblings_by_age(individuals_dict, families_dict)
+            print(ordered_siblings)
+            print("Ordering siblings by age Complete")
+        if perform_list_large_age_differences:
+            list_large_age_differences(individuals_dict, families_dict)
+
+  
         individuals_t, families_t = parse_gedcom(gedcom_file_path)
         check_constraints(individuals_t, families_t)
         # User Story 35 - List Recent Births - List all people in a GEDCOM file who were born in the last 30 days
@@ -1094,6 +1119,156 @@ def main():
         print(f"File '{gedcom_file_path}' not found.")
     except Exception as e:
         print(f"An error occurred: {e}")
+def check_corresponding_entries(individuals, families):
+    """
+    Check the corresponding entries between individuals and families to identify any errors.
+
+    Parameters:
+    individuals (dict): A dictionary containing information about individuals.
+    families (dict): A dictionary containing information about families.
+
+    Returns:
+    list: A list of errors found during the check.
+    """
+
+    print("checking corresponding entries")
+    errors = []
+
+    # Ensure individuals and families are dictionaries
+    if not isinstance(individuals, dict) or not isinstance(families, dict):
+        raise TypeError("Both individuals and families must be dictionaries.")
+
+    # Check individuals' FAMS and FAMC against families' HUSB, WIFE, and CHIL
+    for ind_id, ind_data in individuals.items():
+        fams = ind_data.get('FAMS', [])
+        famc = ind_data.get('FAMC', [])
+        for fam_id in fams:
+            if fam_id not in families:
+                errors.append(f"Checking Corresponding Entries: ERROR: Individual {ind_id} has a FAMS link to non-existent family {fam_id}")
+                continue
+            fam = families.get(fam_id, {})
+            if ind_id not in [fam.get('HUSB', ''), fam.get('WIFE', '')]:
+                errors.append(f"Checking Corresponding Entries: ERROR:  Individual {ind_id} is listed as a spouse in family {fam_id} but is not recorded as HUSB or WIFE")
+        for fam_id in famc:
+            if fam_id not in families:
+                errors.append(f"Checking Corresponding Entries: ERROR:  Individual {ind_id} has a FAMC link to non-existent family {fam_id}")
+                continue
+            fam = families.get(fam_id, {})
+            if ind_id not in fam.get('CHIL', []):
+                errors.append(f"Checking Corresponding Entries: ERROR:  Individual {ind_id} is listed as a child in family {fam_id} but is not recorded as CHIL")
+
+    # Check families' HUSB, WIFE, and CHIL against individuals' FAMS and FAMC
+    for fam_id, fam_data in families.items():
+        husb_id = fam_data.get('HUSB', '')
+        wife_id = fam_data.get('WIFE', '')
+        if husb_id and husb_id not in individuals:
+            continue  # Skip if husband or wife is not in individuals dict
+        if wife_id and wife_id not in individuals:
+            continue
+        if husb_id and fam_id not in individuals.get(husb_id, {}).get('FAMS', []):
+            errors.append(f"Checking Corresponding Entries: ERROR:  Husband {husb_id} in family {fam_id} does not list {fam_id} in FAMS")
+        if wife_id and fam_id not in individuals.get(wife_id, {}).get('FAMS', []):
+            errors.append(f"Checking Corresponding Entries: ERROR:  Wife {wife_id} in family {fam_id} does not list {fam_id} in FAMS")
+        for child_id in fam_data.get('CHIL', []):
+            if child_id not in individuals or fam_id not in individuals.get(child_id, {}).get('FAMC', []):
+                errors.append(f"Checking Corresponding Entries: ERROR: FAMILY: Child {child_id} in family {fam_id} does not list {fam_id} in FAMC")
+
+    print("checking corresponding entries Complete")
+    return errors
+
+
+def include_individual_ages(individuals):
+    """
+    Prints individuals' data along with their ages.
+
+    :param individuals
+    """
+    individual_table = PrettyTable()
+    individual_table.field_names = ["ID", "Name", "Gender", "Birthday", "Age", "Alive", "Death"]
+
+    for individual_id, data in individuals:
+        birth_date = data.get('birth', '')
+        if not birth_date.strip():
+            birth_date = "N/A"
+
+        age = calculate_age(birth_date) if birth_date else "N/A"
+        alive = "Yes" if not data.get('death', '') else "No"
+        individual_table.add_row([individual_id, data.get('name', ''), data.get('sex', ''), birth_date, age, alive, data.get('death', '')])
+
+    print(individual_table)
+def order_siblings_by_age(individuals, families):
+    print("Ordering siblings by age")
+    siblings_ordered_by_age = {}
+    
+    for family_id, family_data in families.items():
+        #print("Family id is " + family_id)
+        #print("Family data is " + str(family_data))
+        siblings = family_data.get('Children', [])
+        
+        siblings_details = [individuals.get(sibling_id) for sibling_id in siblings]
+        
+        #print("Siblings details are " + str(siblings_details))
+        siblings_with_birth_dates = [s for s in siblings_details if s and 'birth' in s]
+        
+        #print ("Siblings with birth dates are " + str(siblings_with_birth_dates))
+        sorted_siblings = sorted(siblings_with_birth_dates, key=lambda s: calculate_age(s['birth']), reverse=True)
+        
+        #print("Sorted siblings are " + str(sorted_siblings))
+
+        # Store the sorted siblings data directly
+        siblings_ordered_by_age[family_id] = sorted_siblings
+    print("Siblings ordered by age")
+    return siblings_ordered_by_age
+def calculate_target_age(birth_date, target_date):
+    """
+    Calculate the age of an individual at a specific target date.
+
+    :param birth_date: The birth date of the individual as a datetime.datetime object.
+    :param target_date: The target date (e.g., marriage date) as a datetime.datetime object.
+    :return: The age of the individual at the target date.
+    """
+    #print("Birth date is " + str(birth_date))
+    #print("Target date is " + str(target_date))
+    age = target_date.year - birth_date.year - ((target_date.month, target_date.day) < (birth_date.month, birth_date.day))
+    return age
+def list_large_age_differences(individuals, families):
+    """
+    Lists all couples who were married when the older spouse was more than twice as old as the younger spouse.
+
+    :param individuals: A dictionary where keys are individual IDs and values are dictionaries containing individual data.
+    :param families: A dictionary where keys are family IDs and values are dictionaries containing family data.
+    :return: A list of tuples, where each tuple contains the IDs of a couple that meets the criteria.
+    """
+    print("Listing large age differences")
+    large_age_difference_couples = []
+
+    for family_id, family_data in families.items():
+        husband_id = family_data['Husband ID']
+        #print("Husband id is " + husband_id)
+        wife_id = family_data['Wife ID']
+        #print("Wife id is " + wife_id)
+        husband_birth_date = datetime.strptime(individuals[husband_id]['birth'], "%Y-%m-%d")
+        #print("Husband birth date is " + str(husband_birth_date))
+        wife_birth_date = datetime.strptime(individuals[wife_id]['birth'], "%Y-%m-%d")
+        #print("Wife birth date is " + str(wife_birth_date))
+        #print("Married is " + str(family_data['Married']))
+        if not family_data['Married']:
+            print("list_large_age_differences: Skipping family " + family_id + " because there is no married date available to calculate age difference")
+            continue
+        marriage_date = datetime.strptime(family_data['Married'], "%Y-%m-%d")
+        #print("Marriage date is " + str(marriage_date))
+
+        husband_age_at_marriage = calculate_target_age(husband_birth_date, marriage_date)
+        wife_age_at_marriage = calculate_target_age(wife_birth_date, marriage_date)
+
+        # Check if the older spouse is more than twice as old as the younger spouse at the time of marriage
+        if abs(husband_age_at_marriage - wife_age_at_marriage) > 2 * wife_age_at_marriage:
+            large_age_difference_couples.append((husband_id, wife_id))
+    print(large_age_difference_couples)
+    print("Large age difference complete")
+    return large_age_difference_couples
+
+
 
 if __name__ == "__main__":
     main()
