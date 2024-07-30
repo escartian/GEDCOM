@@ -15,10 +15,10 @@ perform_list_multiple_births = False         #US32
 perform_list_orphans = False                 #US33
 perform_list_large_age_differences = False   #US34
 
-perform_Corresponding_entries = True
-perform_include_individual_ages = True
-perform_order_siblings_by_age = True
-perform_list_large_age_differences = True
+perform_Corresponding_entries = False
+perform_include_individual_ages = False
+perform_order_siblings_by_age = False
+perform_list_large_age_differences = False
 
 MAX_FAMILIES = 1000
 MAX_INDIVIDUALS = 1000

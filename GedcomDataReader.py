@@ -810,22 +810,24 @@ def check_constraints(individuals, families):
         print("=====Checking that Children should be born after marriage of parents=====")
         if marriage_date:
             for child in children:
+                child_id = child.get('ID', 'Unknown')  # Use 'Unknown' if 'ID' is not present
                 birth_date = child['BIRT']
                 if birth_date and birth_date < marriage_date:
-                    print(f"ERROR: FAMILY: US08: Child {child['ID']} born before marriage in family {fam_id} (line {fam_line}).")
+                    print(f"ERROR: FAMILY: US08: Child {child_id} born before marriage in family {fam_id} (line {fam_line}).")
                 if divorce_date and birth_date and birth_date > divorce_date and birth_date <= divorce_date + timedelta(days=9 * 30):
-                    print(f"ERROR: FAMILY: US08: Child {child['ID']} born more than 9 months after divorce in family {fam_id} (line {fam_line}).")
+                    print(f"ERROR: FAMILY: US08: Child {child_id} born more than 9 months after divorce in family {fam_id} (line {fam_line}).")
 
         print("=====Checking that Child should be born before death of mother and before 9 months after death of father=====")
         wife_death_date = wife['DEAT']
         husband_death_date = husband['DEAT']
         for child in children:
+            child_id = child.get('ID', 'Unknown')  # Use 'Unknown' if 'ID' is not present
             birth_date = child['BIRT']
             if birth_date:
                 if wife_death_date and birth_date > wife_death_date:
-                    print(f"ERROR: FAMILY: US09: Child {child['ID']} born after death of mother in family {fam_id} (line {fam_line}).")
+                    print(f"ERROR: FAMILY: US09: Child {child_id} born after death of mother in family {fam_id} (line {fam_line}).")
                 if husband_death_date and birth_date > husband_death_date + timedelta(days=9 * 30):
-                    print(f"ERROR: FAMILY: US09: Child {child['ID']} born more than 9 months after death of father in family {fam_id} (line {fam_line}).")
+                    print(f"ERROR: FAMILY: US09: Child {child_id} born more than 9 months after death of father in family {fam_id} (line {fam_line}).")
 
         print("=====Checking that Marriage should be at least 14 years after birth of both spouses=====")
         husband_birth_date = husband['BIRT']
@@ -838,12 +840,13 @@ def check_constraints(individuals, families):
 
         print("=====Checking that Parents' ages at child's birth=====")
         for child in children:
+            child_id = child.get('ID', 'Unknown')  # Use 'Unknown' if 'ID' is not present
             birth_date = child['BIRT']
             if birth_date:
                 if husband_birth_date and years_difference(birth_date, husband_birth_date) > 80:
-                    print(f"ERROR: FAMILY: US12: Father {fam['HUSB']} more than 80 years older than child {child['ID']} in family {fam_id} (line {fam_line}).")
+                    print(f"ERROR: FAMILY: US12: Father {fam['HUSB']} more than 80 years older than child {child_id} in family {fam_id} (line {fam_line}).")
                 if wife_birth_date and years_difference(birth_date, wife_birth_date) > 60:
-                    print(f"ERROR: FAMILY: US12: Mother {fam['WIFE']} more than 60 years older than child {child['ID']} in family {fam_id} (line {fam_line}).")
+                    print(f"ERROR: FAMILY: US12: Mother {fam['WIFE']} more than 60 years older than child {child_id} in family {fam_id} (line {fam_line}).")
 
         if 'CHIL' in fam:
             children = fam['CHIL']
@@ -1272,6 +1275,35 @@ def main():
         # User Story 38 - List Upcoming Birthdays - List all living people in a GEDCOM file whose birthdays occur in the next 30 days
         list_upcoming_birthdays(individuals_t)
 
+
+
+        first_cousins = find_first_cousins(individuals_dict, families_dict)
+        married_cousins = check_first_cousins_marriage(families_dict, first_cousins)
+
+        print("========================================")
+        if married_cousins:
+            print("Checking that no first cousins married to each other:")
+            for couple in married_cousins:
+                print(f"ERROR: First cousins {couple[0]} and {couple[1]} are married.")
+        else:
+            print("No first cousins are married to each other.")
+
+
+
+        aunts_and_uncles = find_aunts_and_uncles(individuals_dict, families_dict)
+        married_neices_nephews = check_aunt_uncle_niece_nephew_marriage(families_dict, aunts_and_uncles)
+
+        print("========================================")
+        if married_neices_nephews:
+            print("Checking that no first cousins married to each other:")
+            for couple in married_cousins:
+                print(f"ERROR: {couple[0]} and {couple[1]} are married but have an Aunt/Uncle Niece/Nephew relationship.")
+        else:
+            print("No Aunts and Uncles married to their neices and nephews found.")
+        
+
+
+
         print("========================================\nProgram Ended Successfully")
 
     except FileNotFoundError:
@@ -1445,6 +1477,118 @@ def list_large_age_differences(individuals, families):
     print("Large age difference complete")
     return large_age_difference_couples
 
+
+def find_first_cousins(individuals, families):
+    """
+    Find all first cousins in the GEDCOM data.
+
+    :param individuals: Dictionary of individuals with their details.
+    :param families: Dictionary of families with their details.
+    :return: A dictionary where keys are individual IDs and values are sets of their first cousins' IDs.
+    """
+    if logger:    
+        print("Finding first cousins")
+    first_cousins = {}
+
+    for ind_id, ind_data in individuals.items():
+        if logger:
+            print(f"Processing individual {ind_id}")
+        # Skip if individual has no family data
+        if not ind_data.get('FAMC'):
+            if logger:
+                print(f"Individual {ind_id} has no FAMC data")
+            continue
+
+        # Find the individual's grandparents through their parents
+        grandparents = set()
+        family = families.get(ind_data['FAMC'])
+        if family and 'CHIL' in family:
+            for parent_id in family['CHIL']:
+                parent_family = families.get(individuals[parent_id], {}).get('FAMC')
+                if parent_family:
+                    print(f"Found parent family {parent_family} for individual {ind_id}")
+                    grandparents.update(families[parent_family]['CHIL'])
+
+        # Find first cousins by checking siblings of parents (aunts and uncles)
+        first_cousins[ind_id] = set()
+        for grandparent_id in grandparents:
+            grandparent_family = families.get(grandparent_id)
+            if grandparent_family and 'CHIL' in grandparent_family:
+                for aunt_or_uncle_id in grandparent_family['CHIL']:
+                    first_cousins[ind_id].update(families[aunt_or_uncle_id]['CHIL'])
+                    if logger:
+                        print(f"Added first cousins {families[aunt_or_uncle_id]['CHIL']} for individual {ind_id}")
+    if logger:
+        print(f"FIRST COUSINGS ARE: {first_cousins}")
+    return first_cousins
+
+def find_aunts_and_uncles(individuals, families):
+    """
+    Find all aunts and uncles for each individual in the GEDCOM data.
+
+    :param individuals: Dictionary of individuals with their details.
+    :param families: Dictionary of families with their details.
+    :return: A dictionary where keys are individual IDs and values are sets of their aunts and uncles' IDs.
+    """
+    aunts_and_uncles = {}
+
+    for ind_id, ind_data in individuals.items():
+        # Skip if individual has no family data
+        if not ind_data.get('FAMC'):
+            continue
+
+        # Find the individual's aunts and uncles through their parents
+        aunts_uncles = set()
+        family = families.get(ind_data['FAMC'])
+        if family and 'CHIL' in family:
+            for parent_id in family['CHIL']:
+                parent_family = families.get(individuals[parent_id]['FAMC'])
+                if parent_family:
+                    # Exclude the individual's parents from the aunts and uncles
+                    aunts_uncles.update(set(family['CHIL'] - {parent_id}))
+
+        aunts_and_uncles[ind_id] = aunts_uncles
+
+    return aunts_and_uncles
+
+def check_aunt_uncle_niece_nephew_marriage(families, aunts_and_uncles):
+    """
+    Check if any aunts or uncles are married to their nieces or nephews.
+
+    :param individuals: Dictionary of individuals with their details.
+    :param families: Dictionary of families with their details.
+    :param aunts_and_uncles: Dictionary of aunts and uncles for each individual.
+    :return: List of tuples containing IDs of married aunts/uncles and their nieces/nephews.
+    """
+    married_relations = []
+
+    for fam_id, fam_data in families.items():
+        husband_id = fam_data.get('HUSB')
+        wife_id = fam_data.get('WIFE')
+        if husband_id and wife_id:
+            if husband_id in aunts_and_uncles.get(wife_id, []) or wife_id in aunts_and_uncles.get(husband_id, []):
+                married_relations.append((husband_id, wife_id))
+
+    return married_relations
+
+def check_first_cousins_marriage(families, first_cousins):
+    """
+    Check if any first cousins are married to each other.
+
+    :param families: Dictionary of families with their details.
+    :param first_cousins: Dictionary of first cousins for each individual.
+    :return: List of tuples containing IDs of married first cousins.
+    """
+    married_cousins = []
+
+    for fam_id, fam_data in families.items():
+        husband_id = fam_data.get('HUSB')
+        wife_id = fam_data.get('WIFE')
+        if husband_id and wife_id:
+            if husband_id in first_cousins.get(wife_id, []) or wife_id in first_cousins.get(husband_id, []):
+                married_cousins.append((husband_id, wife_id))
+
+    return married_cousins
 
 if __name__ == "__main__":
     main()
