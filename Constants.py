@@ -20,6 +20,10 @@ perform_include_individual_ages = False
 perform_order_siblings_by_age = False
 perform_list_large_age_differences = False
 
+perform_check_married_first_cousins = True
+perform_check_married_neices_nephews = True
+
+
 MAX_FAMILIES = 1000
 MAX_INDIVIDUALS = 1000
 gedcom_file_path = "IgorBichFakeFamily.ged"

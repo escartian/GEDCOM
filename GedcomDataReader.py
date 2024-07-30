@@ -1275,31 +1275,25 @@ def main():
         # User Story 38 - List Upcoming Birthdays - List all living people in a GEDCOM file whose birthdays occur in the next 30 days
         list_upcoming_birthdays(individuals_t)
 
-
-
-        first_cousins = find_first_cousins(individuals_dict, families_dict)
-        married_cousins = check_first_cousins_marriage(families_dict, first_cousins)
-
         print("========================================")
-        if married_cousins:
+        if perform_check_married_first_cousins:
             print("Checking that no first cousins married to each other:")
+            first_cousins = find_first_cousins(individuals_dict, families_dict)
+            married_cousins = check_first_cousins_marriage(families_dict, first_cousins)
             for couple in married_cousins:
                 print(f"ERROR: First cousins {couple[0]} and {couple[1]} are married.")
-        else:
-            print("No first cousins are married to each other.")
-
-
-
-        aunts_and_uncles = find_aunts_and_uncles(individuals_dict, families_dict)
-        married_neices_nephews = check_aunt_uncle_niece_nephew_marriage(families_dict, aunts_and_uncles)
+            if married_cousins == []:
+                print("No first cousins are married to each other.")
 
         print("========================================")
-        if married_neices_nephews:
-            print("Checking that no first cousins married to each other:")
-            for couple in married_cousins:
-                print(f"ERROR: {couple[0]} and {couple[1]} are married but have an Aunt/Uncle Niece/Nephew relationship.")
-        else:
-            print("No Aunts and Uncles married to their neices and nephews found.")
+        if perform_check_married_neices_nephews:
+            print("Checking that no neices/nephews are married to their aunts/uncles:")
+            aunts_and_uncles = find_aunts_and_uncles(individuals_dict, families_dict)
+            married_neices_nephews = check_aunt_uncle_niece_nephew_marriage(families_dict, aunts_and_uncles)
+            for couple in married_neices_nephews:
+                print(f"ERROR: {couple[0]} and {couple[1]} are married but have an Aunt/Uncle and Niece/Nephew relationship.")
+            if married_neices_nephews == []:
+                print("No aunts/uncles married to their neices/nephews found.")
         
 
 
